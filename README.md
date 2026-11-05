@@ -1,1 +1,3 @@
-# EE354-Final-Project-Chrome-Dino-Run-Game
+# Chrome Dino Run Game
+EE354 Final Project
+Team Members: Jessica Li and Aditi Kelkar
