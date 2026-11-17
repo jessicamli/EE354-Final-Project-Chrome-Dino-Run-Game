@@ -1,122 +1,75 @@
-//////////////////////////////////////////////////////////////////////////////////
-// Author:			Shideh Shahidi, Bilal Zafar, Gandhi Puvvada
-// Create Date:   02/25/08, 10/13/08
-// File Name:		ee354_GCD.v 
-// Description: 
-//
-//
-// Revision: 		2.1
-// Additional Comments:  
-// 10/13/2008 SCEN has been added by Gandhi
-//  3/1/2010  Signal names are changed in line with the divider_verilog design
-//           `define is replaced by localparam construct
-//  02/24/2020 Nexys-3 to Nexys-4 conversion done by Yue (Julien) Niu and reviewed by Gandhi
-//////////////////////////////////////////////////////////////////////////////////
+// This file chooses the color of each screen pixel to display a stationary dinosaur on white background.
+module renderer (
+    input wire pixel_clk,
+    input wire reset,
+    input wire video_active, // Signal indicating if curr. coordinate is in visible display area
 
+    // Current screen coordinates (640x480 monitor display)
+    input wire [9:0] pixel_x,
+    input wire [9:0] pixel_y,
 
-module ee354_GCD(Clk, SCEN, Reset, Start, Ack, Ain, Bin, A, B, AB_GCD, i_count, q_I, q_Sub, q_Mult, q_Done);
+    // 12-bit output color (4 bits for red, green, and blue)
+    output reg  [11:0] rgb
+);
 
+    // Dinosaur position and size
+    localparam DINO_X = 80;
+    localparam DINO_Y = 214;
+    localparam DINO_W = 56;
+    localparam DINO_H = 51;
 
-	/*  INPUTS */
-	input	Clk, SCEN, Reset, Start, Ack;
-	input [7:0] Ain;
-	input [7:0] Bin;
-	
-	// i_count is a count of number of factors of 2	. We do not need an 8-bit counter. 
-	// However, in-line with other variables, this has been made an 8-bit item.
-	/*  OUTPUTS */
-	// store the two inputs Ain and Bin in A and B . These (A, B) are also continuously output to the higher module. along with the AB_GCD
-	output reg [7:0] A, B, AB_GCD, i_count;		// the result of the operation: GCD of the two numbers
-	// store current state
-	output q_I, q_Sub, q_Mult, q_Done;
-	reg [3:0] state;	
-	assign {q_Done, q_Mult, q_Sub, q_I} = state;
-		
-	localparam 	
-	I = 4'b0001, SUB = 4'b0010, MULT = 4'b0100, DONE = 4'b1000, UNK = 4'bXXXX;
-	
-	// NSL AND SM
-	always @ (posedge Clk, posedge Reset)
-	begin : GCD_STATE_MACHINE
-		if(Reset) 
-		  begin
-			state <= I;
-			i_count <= 8'bx;  	// ****** TODO ******
-			A <= 8'bx;		  	// complete the 3 lines
-			B <= 8'bx;
-			AB_GCD <= 8'bx;			
-		  end
-		else				// ****** TODO ****** complete several parts
-				case(state)	
-					I:
-					begin
-						// state transfers
-						if (Start) state <= SUB;
-						// data transfers
-						i_count <= 0;
-						A <= Ain;
-						B <= Bin;
-						AB_GCD <= 0;
-					end		
-					SUB: 
-		               if (SCEN) //  This causes single-stepping the SUB state
-						begin		
-							// state transfers
-							if (A == B) state <= (i_count == 0) ?  DONE  : MULT;
-							// data transfers
-							if (A == B) AB_GCD <= A;		
-							if (A < B)
-							  begin
-								// swap A and B
-								A <= B;
-								B <= A;
- 
-							  end
-							 else						// if (A > B)
-							  begin	
-                                // A > B and both A and B are even
-                                if ((A[0] == 0) && (B[0] == 0))
-                                    begin
-                                        A <= A / 2;
-                                        B <= B / 2;
-                                        i_count <= i_count + 1;
-                                    end 
-                                // only A is even
-                                else if (A[0] == 0)
-                                    A <= A / 2;
-                                // only B is even
-                                else if (B[0] == 0)
-                                    B <= B / 2;
-                                // both A and B are odd
-                                else
-                                    A <= A - B;
+    wire inside_dino; // Signal that indicates if the curr. screen coordinate falls inside the sprite rectangle
+    
+    // Coordinates within the sprite
+    wire [9:0] sprite_x;
+    wire [9:0] sprite_y;
+    
+    wire [11:0] dino_color;
 
+    // Checks if current screen pixel is inside the dino's rectangle
+    assign inside_dino =
+        (pixel_x >= DINO_X) &&
+        (pixel_x < DINO_X + DINO_W) &&
+        (pixel_y >= DINO_Y) &&
+        (pixel_y < DINO_Y + DINO_H);
 
-							  end
-						end
-					MULT:
-					  if (SCEN) // This causes single-stepping the MULT state
-						begin
-							// state transfers
-							if (i_count == 1) 
-							     state <= DONE;
-							// data transfers
-							// revert one last case
-							AB_GCD <= AB_GCD * 2;
-							i_count <= i_count - 1;
+    // Convert screen coordinates to coordinates within the sprite
+    assign sprite_x = inside_dino ? pixel_x - DINO_X : 10'd0;
+    assign sprite_y = inside_dino ? pixel_y - DINO_Y : 10'd0;
 
+    // Instantiate sprite
+    dino1_rom dino_sprite (
+        .clk        (pixel_clk),
+        .row        (sprite_y[5:0]),
+        .col        (sprite_x[5:0]),
+        .color_data (dino_color)
+    );
 
-						end
-					
-					DONE:
-						if (Ack)	state <= I;
-						
-					default:		
-						state <= UNK;
-				endcase
-	end
-		
-	// OFL
-	// no combinational output signals
-	
+    // Since ROM delays its coordinates by one clock, we delay the corresponding control signals to match
+    reg inside_dino_d;
+    reg video_active_d;
+
+    always @(posedge pixel_clk) begin
+        if (reset) begin
+            inside_dino_d  <= 1'b0;
+            video_active_d <= 1'b0;
+        end else begin
+            inside_dino_d  <= inside_dino;
+            video_active_d <= video_active;
+        end
+    end
+
+    // Select the displayed pixel color
+    always @* begin
+        rgb = 12'hFFF;  // White background
+
+        // For this image, we treat black background pixels as transparent
+        if (inside_dino_d && dino_color != 12'h000)
+            rgb = dino_color;
+
+        // Output black outside the visible screen
+        if (!video_active_d)
+            rgb = 12'h000;
+    end
+
 endmodule
