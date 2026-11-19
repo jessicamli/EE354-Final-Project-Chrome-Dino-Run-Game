@@ -24,3 +24,8 @@ set_property -dict { PACKAGE_PIN B12 IOSTANDARD LVCMOS33 } [get_ports VGA_VS]
 
 # Right pushbutton: hold to animate the dinosaur.
 set_property -dict { PACKAGE_PIN M17 IOSTANDARD LVCMOS33 } [get_ports BTNR]
+
+create_generated_clock -name vga_clk \
+    -source [get_ports CLK100MHZ] \
+    -divide_by 4 \
+    [get_pins {u_clk_div/div_count_reg[1]/Q}]
