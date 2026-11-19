@@ -50,7 +50,8 @@ module game_sm #(
         if (rst) begin
             dino_pose <= STANDING;
             anim_count <= 16'd0;
-        end else if (game_tick) begin
+        end 
+        else if (game_tick) begin
             if ((game_state != GAME) || !run_held) begin
                 dino_pose <= STANDING;
                 anim_count <= 16'd0;

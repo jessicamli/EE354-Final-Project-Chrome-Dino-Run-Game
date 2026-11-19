@@ -84,12 +84,21 @@ module graphics #(
 
     // Get colors from the sprite ROMs
     wire [11:0] stand_color, run2_color, run3_color;
-    // Clamp each ROM's address to its own dimensions, including when unused.
-    dino1_rom stand_sprite (.clk(vga_clk), .row((sprite_y < STAND_H) ? sprite_y[5:0] : 6'd0), .col((sprite_x < STAND_W) ? sprite_x[5:0] : 6'd0), .color_data(stand_color)
+
+    dino1_rom stand_sprite (.clk(vga_clk), 
+        .row((sprite_y < STAND_H) ? sprite_y[5:0] : 6'd0), 
+        .col((sprite_x < STAND_W) ? sprite_x[5:0] : 6'd0), 
+        .color_data(stand_color)
     );
-    dino2_rom run2_sprite (.clk(vga_clk), .row((sprite_y < RUN2_H) ? sprite_y[5:0] : 6'd0), .col((sprite_x < RUN2_W) ? sprite_x[5:0] : 6'd0), .color_data(run2_color)
+    dino2_rom run2_sprite (.clk(vga_clk), 
+        .row((sprite_y < RUN2_H) ? sprite_y[5:0] : 6'd0), 
+        .col((sprite_x < RUN2_W) ? sprite_x[5:0] : 6'd0), 
+        .color_data(run2_color)
     );
-    dino3_rom run3_sprite (.clk(vga_clk), .row((sprite_y < RUN3_H) ? sprite_y[5:0] : 6'd0), .col((sprite_x < RUN3_W) ? sprite_x[5:0] : 6'd0), .color_data(run3_color)
+    dino3_rom run3_sprite (.clk(vga_clk), 
+        .row((sprite_y < RUN3_H) ? sprite_y[5:0] : 6'd0), 
+        .col((sprite_x < RUN3_W) ? sprite_x[5:0] : 6'd0), 
+        .color_data(run3_color)
     );
 
     // Match with the ROMs
